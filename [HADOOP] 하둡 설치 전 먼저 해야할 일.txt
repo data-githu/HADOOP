@@ -1,0 +1,74 @@
+■ 하둡 설치 전 먼저 해야할 일
+	1) centos  리눅스를  새로 생성합니다. 
+  가상환경  이미지 이름 : centos_2
+
+문제199. 리눅스 설치를 완료하고 아래 2가지를 설정해 놓으세요.
+	2) 게스트 확장 설치
+	3) scott 계정에서 공유폴더 접근할 수 있게하는 방법 
+	1. sudo usermod -a -G vboxsf scott 입력
+	2. sudo chown -R scott:users /media/sf_data/ 입력
+
+※ scott is not in the sudoers file. This incident will be reported sudo 로 나오면서 명령어가 수행이 안되면 root 로 접속해서 아래와 같이 수행하세요.
+	- usermod -a -G vboxsf scott
+	- chown -R scott:users /media/sf_data/ 
+
+	4) 복제한 centos2 를 시작시키고 scott 으로 접속한다. 
+
+	5) 환경설정 및 putty 다운로드
+현업에서 처럼  리눅스 서버에 putty 와 같은 접속 프로그램을 이용해서 접속하도록 설정합니다. 아래의 블로그 대로 환경을 구성하고 putty 프로그램 다운로드 받고 접속합니다.  
+https://atoz-develop.tistory.com/entry/%EB%A6%AC%EB%88%85%EC%8A%A4-%EA%B0%80%EC%83%81%EB%A8%B8%EC%8B%A0%EC%97%90-PuTTY%EB%A1%9C-SSH-%EC%9B%90%EA%B2%A9-%EC%A0%91%EC%86%8D%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95
+
+
+문제200.  putty 로 centos 리눅스 서버에 접속한 화면을 캡쳐해서 올립니다. (root에서 작업)
+
+
+
+
+
+실제 회사 환경 
+
+내자리 컴퓨터(노트북) -------------------------->  서버실(리눅스 컴퓨터)
+
+  putty <-- 서버 아이피 주소                                     ↓
+                 (192.168.56.1)                                     192.168.56.1
+  아이피주소, 유저이름, 패스워드 
+
+
+
+문제201.  /home/scott 디렉토리로 이동해서 test100 이라는 디렉토리를 생성하시오 !
+답: 
+$ cd
+$  pwd
+$ mkdir  test100
+
+문제202.  리눅스 명령어로 1 부터 5까지의 숫자를 출력하는 쉘스크립트를 작성하고 아래와 같이 실행하시오 !
+ $ sh  a.sh 
+  1
+  2
+  3
+  4
+  5 
+
+$ vi  a.sh 
+for i in {1..5}
+do
+  echo $i
+done
+
+문제203. 공유폴더 접근하시오.
+$ cd  /media/sf_data 
+$ ls -l  emp.txt
+
+문제204.  공유폴더에 있는 emp.txt 를 /home/scott  밑으로 복사하시오 !
+$ cp emp.txt  /home/scott/
+
+문제205. 다시 집(/home/scott )으로 와서 emp.txt 를 cat 으로 열어보시오!
+$ cd
+$ pwd
+$ cat  emp.txt 
+
+문제206. 공유폴더에 있는 dept.txt 도 /home/scott 밑으로 복사하고 cat 으로 열어보시오 !
+$ cp  /media/sf_data/dept.txt . # 현재 디렉토리 
+$ cd
+$ pwd
+$ cat  dept.txt 
