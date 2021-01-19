@@ -1,0 +1,105 @@
+■ hive 함수 익히기
+
+문제212. 월급이 3000인 사원의 이름과 월급을 출력하시오!
+ hive> select ename, sal from emp where sal >= 3000;
+
+
+문제213. 직업이 SALESMAN인 사원의 이름과 직업을 출력하시오!
+hive> select ename, job
+    > from emp
+    > where job = 'SALESMAN';
+
+문제214. 월급이 1200 이상이고 직업이 SALESMAN 인 사원들의 이름과 월급과 직업을 출력하시오!
+hive> select ename, sal, job
+    > from emp
+    > where sal >= 1200 and job ='SALESMAN';
+
+설명 : emp와 같은 작은 데이터를 검색하기 위해서 하둡을 사용하는 것이 아니라 대용량 데이터를 빠르게 검색하기 위해서 하둡을 사용하는 것입니다.
+emp.csv 는 hive 보다는 maria.db 를 이용하는게 좋습니다.
+몇천만건, 몇억건씩 되는 큰 대용량 csv 파일이나 텍스트 파일은 hive를 이용하면 빠르게 검색할 수 있습니다.
+
+문제215. dept 테이블을 생성하시오!
+순서 
+	1. dept.csv 파일을 하둡 파일 시스템에 올립니다.
+	2. dept 테이블 생성 스크립트를 가지고 생성합니다.
+	3. 하둡 파일 시스템에 올라온 dept.csv 파일을 dept 테이블에 입력합니다.
+$ cd
+$ cp /media/sf_data/dept2.csv /home/scott/
+$ hadoop fs -put dept2.csv dept2.csv
+$ hadoop fs -ls dept2.csv
+
+hive> create table dept
+         ( deptno  int,       
+          dname  string,  
+          loc     string )
+ ROW FORMAT DELIMITED    
+ FIELDS TERMINATED BY ','  
+ LINES TERMINATED BY '\n'   
+ STORED AS TEXTFILE ;         
+
+hive>  load  data  inpath  '/user/scott/dept2.csv'
+          overwrite  into   table  dept; 
+
+hive> select * from dept; 
+
+문제216. 이름과 부서위치를 출력하시오!
+hive> select e.ename, d.loc
+    >  from emp e  join dept  d
+    >  on  (e.deptno=d.deptno);
+
+설명:  hive 에서 조인하려면 오라클 조인문법 말고 1999 ansi 문법으로 조인해야합니다. 
+
+문제217.  DALLAS 에서 근무하는 사원들의 이름과 월급과 부서위치를 출력하시오 !
+hive> select   e.ename, e.sal, d.loc
+        from  emp   e   join   dept   d
+        on  ( e.deptno=d.deptno)   
+        where  d.loc='DALLAS'; 
+
+문제218. 직업, 직업별 토탈월급을 출력하시오 !
+hive> select job, sum(sal)
+    >  from emp
+    >  group by job;
+
+문제219. 부서번호, 부서번호별 평균월급을 출력하는데 부서번호별 평균월급이 높은것 부터 출력하시오 !
+hive> select  deptno,  avg(sal)   as  avgsal
+          from  emp
+          group  by deptno
+          order  by  avgsal  desc; 
+
+설명:  hive 는 오라클과는 다르게 그룹함수를 써서 정렬을 할때 order by 절에 컬럼별칭을 사용해야 합니다. 
+
+문제220. 위의 결과를 다시 출력하는데 소수점 이하는 안나오게 반올림하시오
+hive> select deptno,  round( avg(sal) ) as  avgsal
+           from emp
+           group  by deptno
+           order  by  avgsal  desc;
+
+*오라클과 hive 의 함수의 다른점 
+
+        오라클                          vs           하이브 
+  to_char(hiredate, 'RRRR')                      year( to_date(hiredate) ) 
+  to_char(hiredate, 'MM')                    month( to_date(hiredate)  )
+  to_char(hiredate, 'DD')                        day( to_date(hiredate) )  
+
+문제221.  이름과 입사한 년도(4자리) 를 출력하시오 !
+ KING  1981
+ BLAKE  1981
+   :          : 
+
+hive> select  ename, year( to_date(hiredate) )
+               from  emp;
+
+문제222.  1981 년도에 입사한 사원들의 이름과 입사일을 출력하시오 !
+hive> select  ename, hiredate
+              from  emp
+              where  year( to_date(hiredate) ) = '1981';
+
+*오라클을 이용하지 않고 하둡을 이용하는 이유 ?
+ 1.  하둡 is free
+ 2.  분산파일시스템의 장점을 이용할 수 있어서이다. 
+     ( 여러개의 컴퓨터를 하나로 묶어서 슈퍼컴퓨터를 만들 수 있다)
+ 3. 큰 텍스트 파일을 테이블에 insert 하지 않고 그냥 os 에 그냥 두고 링크만 걸어서 select 할 수 있다.  ( 오라클의 external  table 과 유사하다)
+
+
+
+

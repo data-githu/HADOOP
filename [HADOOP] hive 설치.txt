@@ -1,0 +1,80 @@
+■ hive 설치 
+ " 자바를 몰라도 rdbms 에 익숙한 데이터 분석가들을 위해서  SQL 을 이용해서 하둡의 멥리듀싱 프로그램을 지원하는 프로그램 "
+
+  페이스북에서 만든 오픈소스 
+
+ * HiveQL
+   1.  SELECT 는 되는데 update 와 delete 명령어는 지원 안함
+   2.  from 절의 서브쿼리는 사용가능 
+   3.  select 문 사용시 having 절은 사용 불가능
+   4.  PL/SQL 의 프로시져는 hive2.0 부터 가능 
+          ↓ 
+ SQL + C 언어를 이용해서 프로그래밍                  OTLP파트   vs    DW 파트
+                                                                                           ↓
+                                                             DW 개발자, 데이터 분석가, DBA
+
+C 드라이브 밑에 data 폴더 밑에 둡니다.   
+
+1. hive 설치 파일의 압축을 푼다 
+
+$ cd 
+$ cp /media/sf_data/hive-0.12.0.tar.gz  /home/scott/ 
+$ tar xvzf  hive-0.12.0.tar.gz
+
+2. hive 로 접속한다. 
+
+$ cd  /home/scott/hive-0.12.0/bin
+$ ./hive 
+
+hive>  show  tables; 
+
+문제209. hive 에서 emp 테이블을 생성하시오 !
+drop table emp;
+
+create table emp          
+(empno int,  
+ename string,
+job string,
+mgr int,
+hiredate string,
+sal int,
+comm int,
+deptno int)
+ ROW FORMAT DELIMITED 
+ FIELDS TERMINATED BY ','
+ LINES TERMINATED BY '\n'
+ STORED AS TEXTFILE ;
+
+
+문제210. 하둡 파일 시스템에 emp2.csv 를 올리시오 !  
+hive> exit;
+
+$ cd
+$ cp  /media/sf_data/emp2.csv  /home/scott/ 
+$ hadoop  fs  -put  emp2.csv  emp2.csv
+$ hadoop  fs  -ls  emp2.csv 
+
+문제211. 하둡 파일 시스템의 emp2.csv 를  emp 에 로드 하시오 !
+$ cd hive-0.12.0/bin/
+$ ./hive
+
+drop table emp;
+
+create table emp          
+(empno int,  
+ename string,
+job string,
+mgr int,
+hiredate string,
+sal int,
+comm int,
+deptno int)
+ ROW FORMAT DELIMITED 
+ FIELDS TERMINATED BY ','
+ LINES TERMINATED BY '\n'
+ STORED AS TEXTFILE ;
+
+hive>  load  data  inpath  '/user/scott/emp2.csv'
+       overwrite  into  table   emp;  
+
+hive> select  * from  emp;

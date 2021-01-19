@@ -1,0 +1,126 @@
+■ hive로 데이터 분석 - 영화 평점 데이터
+hive> exit;
+
+1. 먼저 대용량 텍스트 파일의 압축파일을 다운로드 받는다. 
+$ cd
+$ wget  http://www.grouplens.org/system/files/ml-1m.zip
+
+2. 위의 압축파일의 압축을 해제합니다.
+$ unzip  ml-1m.zip
+$ cd ml-1m/
+
+문제223.   movies.dat 파일의 위의 10줄만 열어서 보시오 ( head 명령어)
+$  head 10  movies.dat
+
+문제224.  movies.dat 파일의 총 라인수가 어떻게 되는지 확인하시오 ! (wc 명령어)
+$ wc  -l  movies.dat 
+
+문제225.  ratings.dat 파일의 총 라인수가 어떻게 되는지 확인하시오 !
+$ wc -l ratings.dat 
+
+1000209 ratings.dat
+
+문제226. ratings.dat 파일의 위에 10줄만 출력하시오 !
+$ head  10  ratings.dat 
+
+설명:  ratings.dat 의 컬럼 UserID::MovieID::Rating(평점)::Timestamp
+         movies.dat 의 컬럼 MovieID::Title::Genres
+       위의 컬럼에 대한 자세한 소개는 README.txt 를 읽어봅니다.
+
+- UserIDs range between 1 and 6040
+- MovieIDs range between 1 and 3952
+- Ratings are made on a 5-star scale (whole-star ratingonly)
+- Timestamp is represented in seconds since the epoch are turned by time(2)
+- Each user has at least 20 ratings
+
+
+*movies.dat,  ratings.dat, users.dat  이 빅데이터를 하둡 저장하고  hive 를 이용해서 SQL 로 분석을 하고자 한다면 ?
+
+  1.  movies.dat,  ratings.dat, users.dat 의 컬럼과 컬럼 구분을 콤마(,) 가 
+      되겠금 데이터 전처리를 해야됩니다. (리눅스 명령어)
+
+  예제:   $ head  10  movies.dat
+           설명: 확인해보니 컬럼과 컬럼이 :: 로 구분되어져 있다.
+
+            $ sed s/::/,/g movies.dat  >> movies_coma.dat
+            $ head  -5  movies_coma.dat
+     
+            $ sed  s/::/,/g  ratings.dat >>  ratings_coma.dat 
+            $ head  -5  ratings_coma.dat
+            
+            $ sed s/::/,/g  users.dat  >>  users_coma.dat
+            $ head  -5  users_coma.dat
+
+  2. hive 에서 테이블 생성 스크립트를 만든다.
+    ( 테이블명: movies, ratings, users )
+        
+hive> create table users
+         ( userid  int,        
+          gender  string,  
+          age     int,
+          occupation   int,
+          zipcode     string )
+ ROW FORMAT DELIMITED    
+ FIELDS TERMINATED BY ','  
+ LINES TERMINATED BY '\n'    
+ STORED AS TEXTFILE ;         
+
+hive> create table movies
+         ( movieid   int,        
+          title  string,  
+          genres    string )
+ ROW FORMAT DELIMITED    
+ FIELDS TERMINATED BY ','  
+ LINES TERMINATED BY '\n'    
+ STORED AS TEXTFILE ;         
+
+hive> create table ratings 
+         ( userid  int,        
+          movieid  int,  
+          rating   int,
+          tstamp   string )
+ ROW FORMAT DELIMITED    
+ FIELDS TERMINATED BY ','  
+ LINES TERMINATED BY '\n'    
+ STORED AS TEXTFILE ;         
+
+
+  3. movies_coma.dat,  ratings_coma.dat, users_coma.dat  이 3개의 파일을 
+     하둡 파일 시스템에 올린다.
+
+    윈도우 ---->  리눅스 ---> 하둡 파일 시스템  
+     실제세상      꿈               꿈
+
+  $ cd  /home/scott/ml-1m
+  $ ls
+  $ hadoop  fs  -put  movies_coma.dat  movies_coma.dat
+  $ hadoop  fs  -put  ratings_coma.dat  ratings_coma.dat
+  $ hadoop  fs  -put  users_coma.dat  users_coma.dat
+  $ hadoop  fs  -ls 
+
+
+  4. 하둡 파일 시스템에 올린 3개의 파일을 각각 movies 와 users , ratings 테이블에 
+      로드 합니다.
+
+hive>  load  data  local  inpath '/home/scott/ml-1m/movies_coma.dat'  
+          overwrite  into  table  movies;
+
+hive>  load  data  local  inpath '/home/scott/ml-1m/users_coma.dat'
+          overwrite  into  table  users;
+
+hive>  load  data  local  inpath  '/home/scott/ml-1m/ratings_coma.dat'
+         overwrite  into  table  ratings; 
+
+hive> select count(*) from  movies;
+hive> select count(*) from  users;
+hive> select count(*) from  ratings;
+hive> select  * from  movies  limit  5;   
+hive> select * from  ratings  limit 5; 
+
+ratings 는 영화를 본 사람들이 영화번호, 영화평점을 올려놓은 데이터
+
+문제227. raitings 테이블에서 영화번호, 영화번호별 영화평점의 평균값을 출력하는데 영화번호별 영화평점의 평균값이 높은것부터 출력하시오 !
+hive > select movieid, avg(rating) as avgratings
+> from ratings
+> group by movieid
+> order by avgratings desc;
