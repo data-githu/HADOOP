@@ -1,0 +1,106 @@
+문제228. 다시 emp 와 dept 테이블을 생성하고 데이터를 로드하시오 !
+[scott@centos ~]$ hadoop  fs  -put  dept2.csv   dept2.csv
+[scott@centos ~]$ hadoop  fs  -put  emp2.csv   emp2.csv
+
+[scott@centos ~]$ hive
+
+hive> 
+create table emp          
+(empno int,  
+ename string,
+job string,
+mgr int,
+hiredate string,
+sal int,
+comm int,
+deptno int)
+ ROW FORMAT DELIMITED 
+ FIELDS TERMINATED BY ','
+ LINES TERMINATED BY '\n'
+ STORED AS TEXTFILE ;
+
+hive>
+create table dept
+         ( deptno  int,       
+          dname  string,  
+          loc     string )
+ ROW FORMAT DELIMITED    
+ FIELDS TERMINATED BY ','  
+ LINES TERMINATED BY '\n'   
+ STORED AS TEXTFILE ;
+
+hive>  load  data  inpath  '/user/scott/emp2.csv'
+          overwrite  into   table  emp; 
+
+hive>  load  data  inpath  '/user/scott/dept2.csv'
+          overwrite  into   table  dept; 
+
+문제229. 이름, 월급, 월급에 대한 순위를 출력하시오!
+hive> select ename, sal, dense_rank () over (order by sal desc) rnk
+	from emp;
+	
+문제230. 이름, 월급, ntile 함수를 이용해서 월급의 등급을 출력하시오!
+hive > select ename, sal, ntile(4) over (order by sal desc) grade
+	from emp;
+	
+문제231. 아래의 SQL을 hive로 구현하시오!
+SQL> select deptno, listagg(ename, ',') within group (order by ename)
+	from emp
+	group by deptno;
+
+hive > select deptno, CONCAT_WS(',', COLLECT_SET(ename))
+	from emp
+	group by deptno;
+	
+문제232. 사원번호, 이름, 월급, 월급의 누적치를 출력하시오!
+SQL> select empno, ename, sal, sum(sal) over (order by empno asc) sumsal
+	from emp;
+	
+문제234. 오라클의 데이터 분석함수의 lag 와 lead 함수가 hive 에서도 되는지 확인하시오!
+SQL> select deptno, ename, sal, lag(sal,1) over (order by empno asc) 그전행,
+						lead(sal,1) over (order by empno asc) 다음행
+	from emp;
+	
+hive> 
+select deptno, ename, sal, lag(sal,1) over (order by empno asc) lag,
+						lead(sal,1) over (order by empno asc) lead
+	from emp;
+
+문제235. 부서번호, 이름, 월급, 자기가 속한 부서번호의 평균월급을 출력하시오!
+hive> select deptno, ename, sal, avg(sal) over (partition by deptno) avgsal
+	from emp;
+	
+설명 : hive에서 결과 출력에서 컬럼명 나오게 하는 방법
+hive> set hive.cli.print.header=true;
+
+문제236. 위의 결과를 다시 출력하는데 자기의 월급이 자기가 속한 부서번호의 평균월급보다 더 큰 사원들만 출력하시오!
+hive> select *
+	from (select deptno, ename, sal, avg(sal) over (partition by deptno) avgsal from emp ) aaa
+	where sal > avgsal ;
+	
+설명 : hive에서 from 절의 서브쿼리를 사용하려면 반드시 alias를 사용해야 합니다.
+
+문제237. DW에서 많이 사용하는 SQL 중 하나가 WITH 절입니다. 오라클의 WITH 절이 HIVE 에서도 되는지 확인하시오!
+with emp77 (select job, sum(sal) sumsal from emp group by job)
+	select job, sumsal 
+	from emp77;
+
+설명 : with절은 hive1.2.1 버전은 지원 안되고 그 이후 버전부터 가능합니다.
+
+문제238. DW에서 많이 사용하는 집계값 구하는 쿼리를 수행하시오!
+부서번호, 부서번호별 토탈월급을 출력하는데 맨 아래쪽에 전체 토탈월급이 출력되게 하시오!
+
+SQL> select deptno, sum(sal)
+	from emp
+	group by rollup(deptno);
+
+Hive> select deptno, sum(sal)
+	from emp
+	group by deptno with rollup;
+	
+문제239. 위의 결과에서 전체 토탈월급이 아래에 나오도록  order by 절을 사용하시오!
+Hive>  select  deptno, sum(sal)  sumsal
+           from emp
+           group  by  deptno  with  rollup
+           order  by  sumsal  asc; 
+

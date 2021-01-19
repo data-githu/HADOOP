@@ -1,0 +1,135 @@
+문제240.  캐글에서 코로나 데이터 분석에 필요한 코로나 데이터를 내려받아 리눅스 시스템에 넣으시오 !  /home/scott 밑에 가져다 두세요 !
+
+
+문제241.  PatientInfo.csv  를  hive 의 테이블로 구성하시오 !
+ $ head   PatietInfo.csv
+ $ vi PatientInfo.csv
+
+ 맨 위의 컬럼행을 dd 로 지우고 저장하고 나오세요 ~
+
+drop  table  patient;
+
+hive>  create table patient
+(patient_id string,
+sex string,
+age  string,
+country string,
+province string,
+city string,
+infection_case string,
+infected_by string,
+contact_number int,
+symptom_onset_date string,
+confirmed_date string,
+released_date string,
+decreased_date string,
+state string)
+ROW FORMAT DELIMITED 
+ FIELDS TERMINATED BY ','
+ LINES TERMINATED BY '\n'
+ STORED AS TEXTFILE ;
+
+hive> exit;
+
+$ hadoop  fs  -put  PatientInfo.csv   PatientInfo.csv
+$ hive 
+
+hive>  load  data  inpath  '/user/scott/PatientInfo.csv'
+          overwrite  into   table  patient; 
+
+만약 하둡에 올라간 데이터를 지우고 싶다면?
+
+ $ hadoop  fs  -put  /user/scott/PatientInfo.csv
+
+
+문제242. 코로나 환자 데이터를 하둡에 올리고 hive 로 아래와 같이 위에 5건만 조회하고 결과를 캡쳐해서 올리시오.
+hive>  load  data  inpath  '/user/scott/PatientInfo.csv'
+          overwrite  into   table  patient; 
+
+hive>select * from  patient  limit  5; 
+
+문제243. 나이대(age) , 나이대별 인원수를 출력하시오 !
+hive> select  age, count(*)
+          from   patient
+         group  by  age;
+
+
+문제244.  위의 결과를 다시 출력하는데 인원수가 높은것부터 출력하시오 !
+hive> select  age, count(*)  cnt 
+          from   patient
+         group  by  age
+         order  by   cnt   desc; 
+
+
+문제245.  오라클의 grouping sets 가 hive 에서도 지원되는지 확인하시오 !
+SQL> select  deptno, sum(sal)
+            from  emp
+            group  by  grouping  sets( deptno, () );
+
+hive> select  deptno, sum(sal)
+            from  emp
+            group  by  deptno grouping  sets( deptno, () );
+
+설명:  () 는 전체 토탈입니다. 
+
+문제246. 코로나 환자 정보에서  나이대, 나이대별 인원수를 출력하는데 맨 아래에 전체 인원수도 출력하시오 !
+hive>  select  age, count(*)  cnt 
+          from  patient
+          group by   age   grouping  sets( age, () ) 
+          order  by  cnt  asc; 
+
+문제247.  DW 쪽에서 가장 빈번히 수행하는 쿼리문이 아래의 SQL 인데 이 아래의 SQL 을 HIVE 로 구현하시오 !
+SQL> select  sum( decode( deptno, 10, sal) )  as  "10",
+                 sum( decode( deptno, 20, sal) )  as  "20",
+                 sum( decode( deptno, 30, sal) )  as  "30"
+        from  emp; 
+
+hive>  set  hive.cli.print.header=true; 
+
+hive> select  sum( case  when deptno=10 then sal end)  dept10,
+                 sum( case  when deptno=20 then sal end)  dept20,
+                 sum( case  when deptno=30 then sal end)  dept30
+        from  emp;
+
+dept10  dept20  dept30
+8750    10875   9400
+
+문제248.   DW 쪽에서 많이 사용하는 아래의 SQL 에 GROUP by 까지 사용한 결과를 hive 로 구현하시오 !
+SQL> select  job,  sum( decode( deptno, 10, sal) )  as  "10",
+                        sum( decode( deptno, 20, sal) )  as  "20",
+                        sum( decode( deptno, 30, sal) )  as  "30"
+        from  emp
+        group  by  job; 
+
+hive>  select  job,  sum( case  when deptno=10 then sal end)  dept10,
+                         sum( case  when deptno=20 then sal end)  dept20,
+                         sum( case  when deptno=30 then sal end)  dept30
+        from  emp
+       group   by  job; 
+
+
+* 현업에서 hive 사용할 때 중요한게  csv 파일을 받았으면 csv 파일을 가지고  table 생성을 잘 할 수 있어야 합니다. 
+
+문제249. 코로나 데이터중에 감염경로를 알려주는 Case.csv 를 가지고 hive 에 테이블을 생성하시오 !
+case_id,province,city,group,infection_case,confirmed,latitude,longitude
+
+create table doong 
+(caseid int,  
+province string,
+city string,
+group string,
+infection string,
+confirmed int,
+latitude float,
+longitude float)
+ ROW FORMAT DELIMITED 
+ FIELDS TERMINATED BY ','
+ LINES TERMINATED BY '\n'
+ STORED AS TEXTFILE ;
+
+ load  data  inpath  '/user/scott/Case.csv'
+          overwrite  into   table  doong; 
+
+문제250.  감염경로(infection_case)를  중복제거해서 출력하시오 !
+SQL> select  distinct  infection
+            from   doong ;
