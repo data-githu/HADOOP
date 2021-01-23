@@ -1,0 +1,95 @@
+■  Maria db - 파티션 테이블 생성하는 방법 
+
+ 1. 파티션 테이블이 왜 필요한가 ?    
+데이터가 대용량 데이터이면 테이블에서 데이터를 검색할 때 시간이 아주 많이 걸리게 됩니다. 인덱스를 생성해도 인덱스(목차)도 사이즈가 크기 때문에 인덱스를 통한 데이터 검색효과를 볼 수가 없습니다. 그럴때 파티션 테이블을 생성하면됩니다.
+
+예 :  옷장에 서랍이 4개가 있으면 서랍마다 봄옷, 여름옷, 가을옷, 겨울옷을 분리해서
+      각각 저장해두면 옷을 찾기가 편해집니다. 
+
+ 물리적으로 데이터를 분리해서 저장하는 것을 말합니다. 
+    
+예제:  emp 테이블을 부서번호마다 별도의 파티션에 데이터가 저장되겠금 파티션 테이블 구성하겠습니다.  
+
+    부서번호 10번 -------->  1번 파티션
+    부서번호 20번 -------->  2번 파티션
+    부서번호 30번 ---------> 3번 파티션 
+
+create table emp_partition
+(empno int(4) not null,
+ ename varchar(10),
+ job varchar(9),
+ mgr int(4),
+ hiredate date,
+ sal int(7),
+ comm int(7),
+  deptno int(4) )  partition  by  list(deptno)  
+                       ( partition  p1   values  in  (10),
+                         partition  p2   values  in  (20),
+                         partition  p3   values  in  (30) );
+
+
+INSERT INTO emp_partition VALUES (7839,'KING','PRESIDENT',NULL,'81-11-17',5000,NULL,10);
+INSERT INTO emp_partition VALUES (7698,'BLAKE','MANAGER',7839,'81-05-01',2850,NULL,30);
+INSERT INTO emp_partition  VALUES (7782,'CLARK','MANAGER',7839,'81-05-09',2450,NULL,10);
+INSERT INTO emp_partition  VALUES (7566,'JONES','MANAGER',7839,'81-04-01',2975,NULL,20);
+INSERT INTO emp_partition  VALUES (7654,'MARTIN','SALESMAN',7698,'81-09-10',1250,1400,30);
+INSERT INTO emp_partition  VALUES (7844,'TURNER','SALESMAN',7698,'81-08-21',1500,0,30);
+INSERT INTO emp_partition VALUES (7900,'JAMES','CLERK',7698,'81-12-11',950,NULL,30);
+INSERT INTO emp_partition  VALUES (7521,'WARD','SALESMAN',7698,'81-02-23',1250,500,30);
+INSERT INTO emp_partition VALUES (7902,'FORD','ANALYST',7566,'81-12-11',3000,NULL,20);
+INSERT INTO emp_partition VALUES (7369,'SMITH','CLERK',7902,'80-12-09',800,NULL,20);
+INSERT INTO emp_partition VALUES (7788,'SCOTT','ANALYST',7566,'82-12-22',3000,NULL,20);
+INSERT INTO emp_partition VALUES (7876,'ADAMS','CLERK',7788,'83-01-15',1100,NULL,20);
+INSERT INTO emp_partition VALUES (7934,'MILLER','CLERK',7782,'82-01-11',1300,NULL,10);
+commit;
+
+1. 파티션 되어있지 않은 emp 테이블에서 20번 부서번호를 조회
+
+select  ename, sal, deptno
+  from emp
+ where deptno = 20
+ and ename='SCOTT'; 
+
+2. 파티션 되어있는 emp_partition  테이블에서 20번 부서번호를 조회 
+
+select  ename, sal, deptno
+  from emp_partition
+ where deptno = 20
+  and ename='SCOTT';  
+
+ 빅데이터 환경에서는 큰 테이블 몇개는 파티션 테이블로 구성이 되어있습니다. 
+
+
+문제292. mariadb 에서 emp_partition3 라는 이름으로 파티션 테이블을 생성하는데 파티션 키 컬럼을 job 으로 해서 리스트 파티션을 생성하시오
+
+ 직업:  ANALYST, SALESMAN, MANAGER, CLERK, PRESIDENT
+
+Create table emp_partition3
+(empno int(4) not null,
+ Ename varchar(10),
+ Job varchar(9),
+ Mgr int(4),
+ Hiredate date,
+ Sal int(7),
+ Comm int(7),
+ Deptno int(4) ) partition by list columns(job)
+                     ( partition p1 values in('ANALYST'),
+                       partition p2 values in('SALESMAN'),
+                       partition p3 values in('MANAGER'),
+                       partition p4 values in('CLERK'),
+                       partition p5 values in('PRESIDENT') );
+ 
+INSERT INTO emp_partition3 VALUES (7839,'KING','PRESIDENT',NULL,'81-11-17',5000,NULL,10);
+INSERT INTO emp_partition3 VALUES (7698,'BLAKE','MANAGER',7839,'81-05-01',2850,NULL,30);
+INSERT INTO emp_partition3 VALUES (7782,'CLARK','MANAGER',7839,'81-05-09',2450,NULL,10);
+INSERT INTO emp_partition3 VALUES (7566,'JONES','MANAGER',7839,'81-04-01',2975,NULL,20);
+INSERT INTO emp_partition3 VALUES (7654,'MARTIN','SALESMAN',7698,'81-09-10',1250,1400,30);
+INSERT INTO emp_partition3 VALUES (7844,'TURNER','SALESMAN',7698,'81-08-21',1500,0,30);
+INSERT INTO emp_partition3 VALUES (7900,'JAMES','CLERK',7698,'81-12-11',950,NULL,30);
+INSERT INTO emp_partition3 VALUES (7521,'WARD','SALESMAN',7698,'81-02-23',1250,500,30);
+INSERT INTO emp_partition3 VALUES (7902,'FORD','ANALYST',7566,'81-12-11',3000,NULL,20);
+INSERT INTO emp_partition3 VALUES (7369,'SMITH','CLERK',7902,'80-12-09',800,NULL,20);
+INSERT INTO emp_partition3 VALUES (7788,'SCOTT','ANALYST',7566,'82-12-22',3000,NULL,20);
+INSERT INTO emp_partition3 VALUES (7876,'ADAMS','CLERK',7788,'83-01-15',1100,NULL,20);
+INSERT INTO emp_partition3 VALUES (7934,'MILLER','CLERK',7782,'82-01-11',1300,NULL,10);
+commit;
