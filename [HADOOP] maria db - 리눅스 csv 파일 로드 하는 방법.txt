@@ -1,0 +1,249 @@
+■ maria db - 리눅스 csv 파일 로드 하는 방법
+마리아 디비에 코로나 데이터 입력 
+
+use orcl;
+
+drop table cov_case;
+
+create  table  cov_case
+(
+case_id    int(8),
+province  varchar(30),
+city       varchar(20),
+group2  varchar(20),
+infection_case varchar(50),
+confirmed  float,
+latitude varchar(20),
+longitude  varchar(20) );
+
+LOAD DATA LOCAL INFILE '/home/scott/Case.csv'
+REPLACE
+INTO TABLE  orcl.cov_case
+fields TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES     
+(case_id, province, city, group2, infection_case, confirmed, latitude, longitude);
+
+select * from cov_case;
+
+문제301.  도시명, 도시명별 토탈 감염자수를 출력하시오 !
+ select  city, sum(confirmed)
+   from   cov_case
+   group  by  city;
+
+문제302.  위의 결과를 다시 출력하는데 도시명이 null 이 아닌 것만 출력하시오 !
+ select  city, sum(confirmed)
+   from   cov_case
+   where  trim(city)  is  not  null  and  city != '' 
+   group  by  city;
+
+설명: trim 을 사용하면 양쪽 공백을 잘라 버리겠다. 
+
+문제303.  위의 결과를 다시 출력하는데 토탈 확진자수가 높은것부터 출력하시오 !
+ select  city, sum(confirmed)
+   from   cov_case
+   where  trim(city)  is  not  null  and  city != '' 
+   group  by  city
+   order  by   2  desc ;
+
+문제304.  위의 결과를 다시 출력하는데 토탈 확진자수가 100명 이상인 것만 출력하시오 !
+ select  city, sum(confirmed)
+   from   cov_case
+   where  trim(city)  is  not  null  and  city != '' 
+   group  by  city
+   having   sum(confirmed) >= 100
+   order  by   2  desc ;
+
+문제305. 위의 결과를 막대 그래프로 시각화 하시오 !
+import mysql.connector
+import  pandas as  pd
+
+config = {
+    "user": "root",
+    "password": "1234",
+    "host": "192.168.56.101", #local
+    "database": "orcl", #Database name
+    "port": "3306" #port는 최초 설치 시 입력한 값(기본값은 3306)
+}
+
+conn = mysql.connector.connect(**config)
+
+# db select, insert, update, delete 작업 객체
+cursor = conn.cursor()
+
+# 실행할 select 문 구성
+sql = """ SELECT  city ,  round(sum(confirmed)) sum2
+              FROM cov_case 
+             where trim(city) is not null and city !=' '
+             group by city
+             having sum(confirmed) > 50
+            order by sum2 desc
+           """
+           
+# sql 을 실행해서 cursor (메모리) 에 담는다. 
+cursor.execute(sql)
+
+# cursor(메모리)에 담긴 결과 셋 얻어오기
+resultList = cursor.fetchall()  # tuple 이 들어있는 list
+
+df = pd.DataFrame(resultList)  # 판다스 데이터 프레임으로 변환 
+df.columns = ['city', 'cnt']   #  컬럼명을 만들어 줍니다. 
+print(df[['city','cnt']])
+
+# 시각화 
+result = df['cnt']
+result.index = df['city']
+result.plot(kind='bar', color='red') 
+
+설명:  os 의 csv 파일을 maria 디비에 낳고 SQL 로 데이터 전처리를 한후 
+        파이썬으로 시각화 함.
+
+문제306.  province 를 중복 제거해서 출력하시오 !
+select   distinct   province
+   from  cov_case;
+
+문제307.  지역(province), 지역별 토탈 확진자수를 막대 그래프로 시각화 하시오 !
+import mysql.connector
+import  pandas as  pd
+
+config = {
+    "user": "root",
+    "password": "1234",
+    "host": "192.168.56.101", #local
+    "database": "orcl", #Database name
+    "port": "3306" #port는 최초 설치 시 입력한 값(기본값은 3306)
+}
+
+conn = mysql.connector.connect(**config)
+
+# db select, insert, update, delete 작업 객체
+cursor = conn.cursor()
+
+
+# 실행할 select 문 구성
+sql = """ SELECT province,  round(sum(confirmed)) sum2
+       FROM cov_case 
+       where province is not null and city !=''
+       group by province
+       having  round(sum(confirmed)) > 30
+       order by sum2 desc
+           """
+           
+# cursor 객체를 이용해서 수행한다.
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기
+resultList = cursor.fetchall()  # tuple 이 들어있는 list
+df = pd.DataFrame(resultList)
+df.columns = ['city', 'cnt']
+print(df[['city','cnt']])
+
+
+# 시각화 
+result = df['cnt']
+result.index = df['city']
+result.plot(kind='bar', color='red') 
+
+
+
+문제308.  코로나는 남자와 여자중에 누가 더 많이 감염 되었는가 ?
+ 1.  큰 질문 :  코로나는 남자와 여자중에 누가 더 많이 감염되었는가?
+
+ 2.  csv 데이터를 구한다.
+
+$ head PatientInfo.csv
+
+ 3.  마리아 디비에 테이블로 생성한다.
+
+drop  table  pati;
+
+ create   table  pati
+ ( patient_id     float,
+    sex            varchar(30),
+    age              varchar(30),
+    country       varchar(30),
+    province       varchar(30),
+    city               varchar(30),
+    infection_case     varchar(60),
+    infected_by         varchar(60),
+    contact_number     varchar(30),
+    symptom_onset_date   varchar(30),
+    confirmed_date    varchar(30),
+    released_date    varchar(30),
+    deceased_date    varchar(30),
+    state             varchar(30) ) ;
+
+
+LOAD DATA LOCAL INFILE '/home/scott/PatientInfo.csv'
+REPLACE
+INTO TABLE  orcl.pati
+fields TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES     
+(patient_id,sex,age,country,province,city,infection_case,infected_by,contact_number,symptom_onset_date,confirmed_date,released_date,deceased_date,state );
+
+ 성별, 성별별 인원수를 출력하시오 !
+
+MariaDB [orcl]> select  case when  sex =' ' then  'no reponse' 
+                               else  sex  end  gender, count(*)
+                       from  pati  
+                       group by case when  sex =' ' then  'no reponse' else  sex  end;
++------------+----------+
+| gender     | count(*) |
++------------+----------+
+| female       |     2218 |
+| male         |     1824 |
+| no reponse |     1122 |
++------------+----------+
+
+ 4.  파이썬에서 시각화를 한다. 
+import mysql.connector
+import  pandas as  pd
+
+config = {
+    "user": "root",
+    "password": "1234",
+    "host": "192.168.56.101", #local
+    "database": "orcl", #Database name
+    "port": "3306" #port는 최초 설치 시 입력한 값(기본값은 3306)
+}
+
+conn = mysql.connector.connect(**config)
+
+# db select, insert, update, delete 작업 객체
+cursor = conn.cursor()
+
+
+# 실행할 select 문 구성
+sql = """ select  case when  sex =' ' then  'no reponse' 
+                               else  sex  end  gender, count(*)
+                       from  pati  
+                       group by case when  sex =' ' then  'no reponse' else  sex  end
+           """
+           
+# cursor 객체를 이용해서 수행한다.
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기
+resultList = cursor.fetchall()  # tuple 이 들어있는 list
+df = pd.DataFrame(resultList)
+df.columns = ['gender', 'cnt']
+print(df[['gender','cnt']])
+
+ 
+
+# 시각화 
+result = df['cnt']
+result.index = df['gender']
+result.plot(kind='bar', color='green') 
+
+
+ 5.  시각화 그래프와 함께 짧게 시각화한 결과를 설명 
+
+  그래프
+
+설명:  
+확진자수는 남자는 몇 명이고 여자이는 몇 명이고 무응답은 몇 명이었습니다.
+그래프를 보면 남자보다는 여자가 더 많이 확진되었음을 확인할 수 있었습니다 .

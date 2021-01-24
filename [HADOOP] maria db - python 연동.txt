@@ -1,0 +1,244 @@
+■ maria db 와 python 연동
+
+1. putty 로 터미널 창을 열고 py389 를 activate 시키고  mysql 모듈을 설치한다.
+
+$ conda activate py389
+
+(py389) [scott@centos ~]$ pip install mysql-connector-python-rf
+
+설명:  마리아 디비 또는 mySQL 과 파이썬과 연동을 하기 위한 모듈 설치 
+
+설치가 잘되었는지 다음과 같이 확인한다. 
+(py389) [scott@centos ~]$ conda list mysql-connector-python-rf
+
+# Name                           Version               Build  Channel
+mysql-connector-python-rf    2.2.2               pypi_0    pypi
+
+2. 다른 터미널 창을 하나 더 열고 mysql 로 접속해서 모든 ip 의 접속 권한을 
+  부여합니다.
+
+(base) [scott@centos ~]$ su -
+[root@centos ~]#
+[root@centos scott]#  mysql -u root -p
+
+MariaDB [(none)]> use orcl;
+
+아래의 쿼리문은 Maria 디비의 디비 유져에 대한 권한 정보를 확인하는 명령어
+
+MariaDB [orcl]> select Host,User,plugin,authentication_string FROM mysql.user;
+
+MariaDB [orcl]> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '1234';
+Query OK, 0 rows affected (0.021 sec)
+
+3. 마리아 디비에 접속하겠금 방화벽 설정을 합니다.
+
+MariaDB [orcl]> exit;
+
+
+설명: 포트 3306 는 마리아 디비를 위한 기본 포트(port)
+        이 3306 포트를 열어서 파이썬과 연동이 원활하게 되게 해줘야 합니다. 
+
+[root@centos ~]#
+[root@centos ~]# firewall-cmd --list-all-zones
+[root@centos ~]# firewall-cmd --permanent --zone=public --add-port=3306/tcp
+success
+[root@centos ~]# exit
+logout
+
+
+4. 스파이더를 실행해서 아래의 코드를 실행합니다.
+   (mobaxterm 을 먼저 실행하고 scott 으로 접속한 상태에서 다음 작업을 putty 에서
+    합니다. )
+
+(py389) [scott@centos ~]$ export DISPLAY=192.168.19.31:0.0
+(py389) [scott@centos ~]$ spyder
+
+코드:
+import mysql.connector
+
+config = { 
+    "user": "root", 
+    "password": "1234", 
+    "host": "192.168.56.101", #local 
+    "database": "orcl", #Database name 
+    "port": "3306" #port는 최초 설치 시 입력한 값(기본값은 3306) 
+}              
+
+conn = mysql.connector.connect(**config) 
+
+# db select, insert, update, delete 작업 객체 
+cursor = conn.cursor()
+
+
+# 실행할 select 문 구성 (마리아 디비에 있는 emp 테이블을 select 한다)
+sql = "SELECT * FROM emp ORDER BY 1 DESC"
+
+# sql 을 실행해서 cursor 메모리의 결과를 넣는다. 
+cursor.execute(sql)
+
+# cursor 메모리에 저장된 sql 결과물을 얻어옵니다. 
+resultList = cursor.fetchall()  # tuple 이 들어있는 list 
+print(resultList) 
+
+
+
+
+문제293. 마리아 디비와 파이썬과 연동된 상태에서 spyder 에서 이름과 월급을 출력하시오 !
+
+앞에 코드들 ....
+
+import  pandas   as  pd
+
+emp = pd.DataFrame(resultList)
+emp.columns=['empno', 'ename', 'job', 'mgr', 'hiredate', 'sal', 'comm', 'deptno']
+print (emp[['ename', 'sal']] )
+
+만약 pandas  모듈이 없다고 나오면 아래와 같이 py389 가상환경을 activate 한
+putty 터미널 창에서 판다스 모듈을 install 합니다. 
+
+(py389) [scott@centos ~]$ conda  install  pandas  
+
+문제294.  월급이 3000 이상인 사원들의 이름과 월급을 출력하시오 !  (판다스 문법으로 구현) 
+
+앞의 코드들 ...
+print ( emp[['ename', 'sal']] [ emp['sal'] >= 3000 ] )
+
+   ename   sal
+1   FORD  3000
+5   KING  5000
+6  SCOTT  9000
+
+지금 까지 전체 코드:
+import mysql.connector
+
+config = { 
+    "user": "root", 
+    "password": "1234", 
+    "host": "192.168.56.101", #local 
+    "database": "orcl", #Database name 
+    "port": "3306" #port는 최초 설치 시 입력한 값(기본값은 3306) 
+} 
+
+conn = mysql.connector.connect(**config) 
+
+# db select, insert, update, delete 작업 객체 
+cursor = conn.cursor()
+
+
+# 실행할 select 문 구성 
+sql = "SELECT * FROM emp ORDER BY 1 DESC"
+
+# cursor 객체를 이용해서 수행한다. 
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기 
+resultList = cursor.fetchall()  # tuple 이 들어있는 list 
+
+import  pandas   as  pd
+
+emp = pd.DataFrame(resultList)
+emp.columns=['empno', 'ename', 'job', 'mgr', 'hiredate', 'sal', 'comm', 'deptno']
+print ( emp[['ename', 'sal']] [ emp['sal'] >= 3000 ] )
+
+문제295.  직업과 직업별 토탈월급을 출력하시오 !
+
+앞의 코드들 ...
+# 실행할 select 문 구성 
+sql = """SELECT job, sum(sal)
+            from emp
+            group by job"""
+
+# cursor 객체를 이용해서 수행한다. 
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기 
+resultList = cursor.fetchall()  # tuple 이 들어있는 list 
+
+import  pandas   as  pd
+
+emp = pd.DataFrame(resultList)
+emp.columns=['job','sumsal']
+print(emp)
+
+         job       sumsal
+0    ANALYST   12000
+1      CLERK      4150
+2    MANAGER   8275
+3  PRESIDENT   5000
+4   SALESMAN   4000
+
+문제296.  직업, 직업별 토탈월급을 출력하는데 직업이 SALESMAN 은 제외하고 출력하고 직업별 토탈월급이 4000 이상인것만 출력하고 직업별 토탈월급이 높은것부터 출력되게 하시오.
+
+앞의 코드들 ...
+# 실행할 select 문 구성 
+sql = """SELECT job, sum(sal)
+            from emp
+            where  job !='SALESMAN'
+            group by job
+            having  sum(sal) >= 4000
+            order  by  2  desc"""
+
+# cursor 객체를 이용해서 수행한다. 
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기 
+resultList = cursor.fetchall()  # tuple 이 들어있는 list 
+
+import  pandas   as  pd
+
+emp = pd.DataFrame(resultList)
+emp.columns=['job','sumsal']
+print(emp)
+
+문제297.  부서위치, 부서위치별 토탈월급을 출력하시오 !
+
+앞의 코드들 ...
+# 실행할 select 문 구성 
+sql = """select  d.loc, sum(e.sal)
+              from  emp  e   join   dept   d
+              on  (e.deptno = d.deptno)
+              group  by  d.loc """
+
+# cursor 객체를 이용해서 수행한다. 
+cursor.execute(sql)
+
+# select 된 결과 셋 얻어오기 
+resultList = cursor.fetchall()  # tuple 이 들어있는 list 
+
+import  pandas   as  pd
+
+emp = pd.DataFrame(resultList)
+emp.columns=['loc','sumsal']
+print(emp)
+
+문제298. 위의 결과를 막대 그래프로 시각화 하시오 !
+
+앞의 코드들...
+
+result = emp['sumsal'].astype(int)   # object 타입을 int 로 변환한다. 
+result.index= emp['loc']
+
+result.plot( kind='bar', color='red')
+
+
+문제299.  현업에서 많이 사용하는 마리아 디비와 mySQL 을 편하게  사용할 수 있도록 하는 오라클의 sqldeveloper 와 같은 툴을 설치하고 리눅스 서버의 마리아 디비의 emp 테이블을 조회 하시오 !
+"윈도우에서 mySQLworkbench로 리눅스 서버의 마리아 디비 사용하기 "
+
+1. 윈도우에서 아래의 프로그램을 설치합니다.
+https://dev.mysql.com/downloads/workbench/
+
+2. mysqlworkbench 를 실행하여 접속 정보를 아래와 같이 기술합니다.
+
+3. 접속한후에 emp 테이블을 조회합니다.
+
+
+
+
+문제300. (workbench 에서 작업) 직업, 직업별 평균월급을 출력하는데  직업별 평균월급이 2000 이상인 것만 출력하고 직업별 평균월급이 높은것 부터 출력하시오 !
+select job, avg(sal)
+   from emp
+   group by job
+   having avg(sal) >= 2000
+   order by 2 desc;
+
+
